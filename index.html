@@ -1,73 +1,610 @@
-<!-- Estrutura Final Atualizada -->
-<div class="app">
-  <section class="menu bloco">
-    <button class="titulo">Produção</button>
-    <button class="item">Depósito</button>
-    <button class="item">Câmara Fria</button>
-    <button class="item">Freezer</button>
-    <button class="ver-lista">Ver Lista</button>
-  </section>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Balanço Mobile — Produção & Bar</title>
 
-  <section class="menu bloco">
-    <button class="titulo">Bar</button>
-    <button class="item">Depósito</button>
-    <button class="item">Produtos Pesados</button>
-    <button class="item">Vinhos</button>
-    <button class="ver-lista">Ver Lista</button>
-  </section>
-
-  <section class="menu bloco">
-    <button class="titulo">Cadastrar Produto</button>
-  </section>
-</div>
+<!-- jsPDF + autoTable (CDN) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
 <style>
-  body {
-    background: #f4f4f4;
-    font-family: Arial, sans-serif;
-    display: flex;
-    justify-content: center;
-    padding: 20px;
+  :root{
+    --petroleo:#0f5f5c;
+    --grafite:#2b2b2b;
+    --bg:#f6f6f7;
+    --card:#ffffff;
+    --muted:#666;
+    --accent:#7e1e1e;
+    --radius:14px;
   }
-  .app {
-    width: 340px;
-    display: flex;
-    flex-direction: column;
-    gap: 25px;
-  }
-  .bloco {
-    background: #ffffff;
-    padding: 20px;
-    border-radius: 18px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .titulo {
-    background: #0f3d3e; /* verde petróleo */
-    color: white;
-    padding: 12px;
-    border-radius: 20px;
-    border: none;
-    font-size: 16px;
-    font-weight: bold;
-  }
-  .item {
-    background: #2b2b2b; /* grafite */
-    color: white;
-    padding: 10px;
-    border-radius: 18px;
-    border: none;
-    font-size: 15px;
-  }
-  .ver-lista {
-    background: #0f3d3e;
-    color: white;
-    padding: 10px;
-    border-radius: 18px;
-    border: none;
-    margin-top: 5px;
-    font-size: 15px;
+  html,body{height:100%;margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial}
+  .frame{max-width:520px;margin:0 auto;padding:16px}
+  .card{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:14px;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
+  .row{display:flex;gap:8px;align-items:center}
+  .title{font-size:18px;color:var(--petroleo);margin:0 0 8px 0}
+  .btn{background:var(--petroleo);color:#fff;border:none;padding:12px;border-radius:12px;font-size:15px;cursor:pointer}
+  .btn.secondary{background:var(--accent)}
+  .small{color:var(--muted);font-size:13px}
+  /* catalog grid: 2 columns on mobile */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .prod-btn{background:var(--grafite);color:#fff;padding:12px;border-radius:12px;border:none;text-align:left;cursor:pointer;display:flex;flex-direction:column;min-height:56px}
+  .prod-btn small{color:#ddd;margin-top:6px}
+  /* dynamic screens */
+  #screenCatalog, #screenList, #screenAdd { display:none; }
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .link{background:transparent;border:none;color:var(--petroleo);font-weight:600;cursor:pointer}
+  /* modal */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,0.35);display:none;align-items:flex-end;padding:12px;z-index:50}
+  .sheet{background:var(--card);width:100%;max-width:560px;border-radius:14px 14px 6px 6px;padding:14px}
+  .sheet h3{margin:0 0 8px 0}
+  .field{display:flex;justify-content:space-between;align-items:center;margin:10px 0}
+  input[type="text"], input[type="number"], select{padding:10px;border-radius:10px;border:1px solid #e6e6e9;width:60%;text-align:right}
+  label{width:36%}
+  .sheet .actions{display:flex;gap:8px;margin-top:12px}
+  .sheet .actions button{flex:1;padding:10px;border-radius:10px;border:none;cursor:pointer}
+  .saveBtn{background:var(--petroleo);color:#fff}
+  .cancelBtn{background:#eee;color:#111}
+  /* added list entries */
+  .entry{background:#fff;border-radius:12px;padding:10px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06);display:flex;justify-content:space-between;align-items:center}
+  .entry small{color:var(--muted)}
+  /* responsive tweaks */
+  @media(min-width:720px){
+    .frame{padding:24px}
+    .grid{gap:14px}
   }
 </style>
+</head>
+<body>
+  <div class="frame">
+    <div class="card">
+      <div class="topbar">
+        <div>
+          <h1 class="title">Balanço — Produção & Bar</h1>
+          <div class="small">Toque no produto → insira quantidade</div>
+        </div>
+        <div>
+          <button id="btnHome" class="link">Home</button>
+        </div>
+      </div>
+
+      <!-- HOME -->
+      <div id="screenHome">
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <button class="btn" id="btnProducao">Produção</button>
+          <button class="btn" id="btnBar">Bar</button>
+        </div>
+
+        <div style="display:flex;gap:8px;">
+          <button class="btn secondary" id="btnCadastrar">Cadastrar produto</button>
+          <button class="btn" id="btnVerAdicionados">Ver lista</button>
+        </div>
+
+        <div style="margin-top:12px">
+          <button class="btn secondary" id="btnExport">Gerar PDF (data/hora)</button>
+        </div>
+      </div>
+
+      <!-- CATALOG -->
+      <div id="screenCatalog">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <strong id="catalogTitle">Catálogo</strong>
+          <div>
+            <button class="link" id="backToHome">Voltar</button>
+          </div>
+        </div>
+
+        <!-- Two-column grid -->
+        <div class="grid" id="catalogGrid">
+          <!-- products inserted by JS -->
+        </div>
+
+        <div style="margin-top:12px">
+          <button class="btn" id="btnVerListaFromCatalog">Ver Lista (adicionados)</button>
+        </div>
+      </div>
+
+      <!-- ADDED LIST -->
+      <div id="screenList">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <strong>Produtos adicionados</strong>
+          <button class="link" id="backFromList">Voltar</button>
+        </div>
+        <div id="addedContainer"></div>
+      </div>
+
+      <!-- FORM (Cadastrar) -->
+      <div id="screenAdd">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <strong>Cadastrar produto</strong>
+          <button class="link" id="backFromAdd">Voltar</button>
+        </div>
+        <div>
+          <label>Nome</label><input type="text" id="newName" placeholder="Ex: BACON">
+        </div>
+        <div style="margin-top:8px">
+          <label>Unidade</label>
+          <select id="newUnit" style="width:60%;float:right">
+            <option value="UN">UN</option>
+            <option value="KG">KG</option>
+            <option value="L">L</option>
+          </select>
+        </div>
+        <div style="margin-top:8px">
+          <label>Categoria</label>
+          <select id="newScope" style="width:60%;float:right">
+            <option value="producao">Produção</option>
+            <option value="bar">Bar</option>
+          </select>
+        </div>
+        <div style="margin-top:12px">
+          <button class="btn" id="saveNewProd">Salvar produto</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- modal bottom sheet -->
+  <div id="modal" class="modal">
+    <div class="sheet">
+      <h3 id="modalTitle">Produto</h3>
+
+      <div class="field">
+        <label>Unidade</label><input id="modalUnit" type="text" readonly>
+      </div>
+
+      <div class="field">
+        <label>Setor</label>
+        <select id="modalSector">
+          <option value="deposito">Depósito</option>
+          <option value="camara">Câmara Fria</option>
+          <option value="freezer">Freezer</option>
+          <option value="bar">Bar</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Quantidade</label><input id="modalQty" type="number" inputmode="decimal" placeholder="0">
+      </div>
+
+      <div style="margin-top:6px">
+        <input id="modalSum" type="checkbox" checked> <label for="modalSum">Somar ao existente</label>
+      </div>
+
+      <div class="actions">
+        <button class="saveBtn" id="modalSave">Salvar</button>
+        <button class="cancelBtn" id="modalCancel">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* Catalog default (populated from your lists).
+   I included all BAR items you sent + PRODUÇÃO (câmara fria) items.
+   Units: bar -> UN, production -> KG (as you requested).
+   Catalog stored in localStorage key 'catalog_produtos'.
+*/
+
+const DEFAULT_PRODUCTS = [
+  // BAR (many items)
+  {nome:"AGUA C/ GAS", unidade:"UN", scope:"bar"},
+  {nome:"AGUA C/ GAS (REFFIL) 1,5 LT", unidade:"UN", scope:"bar"},
+  {nome:"AGUA S/ GAS", unidade:"UN", scope:"bar"},
+  {nome:"AGUA TONICA LATA", unidade:"UN", scope:"bar"},
+  {nome:"AGUA TONICA DIET LATA", unidade:"UN", scope:"bar"},
+  {nome:"AGUA TONICA 1 LT", unidade:"UN", scope:"bar"},
+  {nome:"CERVEJA AMISTEL 600 ML", unidade:"UN", scope:"bar"},
+  {nome:"CERVEJA BRAHMA 600 ML", unidade:"UN", scope:"bar"},
+  {nome:"CERVEJA BRAHMA DUPLO MALTE 600 ML", unidade:"UN", scope:"bar"},
+  {nome:"CERVEJA BRAHMA S/ALC LATA", unidade:"UN", scope:"bar"},
+  {nome:"CERVEJA EISENBAHN 600 ML", unidade:"UN", scope:"bar"},
+  {nome:"CERVEJA HEINEKEN 600 ML", unidade:"UN", scope:"bar"},
+  {nome:"CERVEJA HEINEKEN LONG NECK", unidade:"UN", scope:"bar"},
+  {nome:"CERVEJA HEINEKEN LONG NECK ZERO", unidade:"UN", scope:"bar"},
+  {nome:"CERVEJA MALZBEER LATA /LONG NECK", unidade:"UN", scope:"bar"},
+  {nome:"CERVEJA ORIGINAL 600 ML", unidade:"UN", scope:"bar"},
+  {nome:"CERVEJA SKOL 600 ML", unidade:"UN", scope:"bar"},
+  {nome:"CERVEJA SKOL LATA", unidade:"UN", scope:"bar"},
+  {nome:"CHOPP HEINKEN", unidade:"UN", scope:"bar"},
+  {nome:"COCA COLA 2 LT", unidade:"UN", scope:"bar"},
+  {nome:"COCA COLA 2 LT ZERO", unidade:"UN", scope:"bar"},
+  {nome:"COCA COLA 600 ML PET", unidade:"UN", scope:"bar"},
+  {nome:"COCA COLA 1 LT RET", unidade:"UN", scope:"bar"},
+  {nome:"COCA COLA 600 ML ZERO PET", unidade:"UN", scope:"bar"},
+  {nome:"COCA COLA KS 290 ML", unidade:"UN", scope:"bar"},
+  {nome:"COCA COLA KS 290 ML ZERO", unidade:"UN", scope:"bar"},
+  {nome:"COCA COLA LATA", unidade:"UN", scope:"bar"},
+  {nome:"COCA COLA LATA ZERO", unidade:"UN", scope:"bar"},
+  {nome:"FANTA LARANJA 2 LT", unidade:"UN", scope:"bar"},
+  {nome:"FANTA LARANJA LATA", unidade:"UN", scope:"bar"},
+  {nome:"FANTA UVA 2 LT", unidade:"UN", scope:"bar"},
+  {nome:"GUARANA ANT 2 LT", unidade:"UN", scope:"bar"},
+  {nome:"GUARANA ANT 2 LT DIET", unidade:"UN", scope:"bar"},
+  {nome:"GUARANA ANT 600 ML", unidade:"UN", scope:"bar"},
+  {nome:"GUARANA ANT LATA", unidade:"UN", scope:"bar"},
+  {nome:"GUARANA ANT LATA DIET", unidade:"UN", scope:"bar"},
+  {nome:"H2OH LIMAO", unidade:"UN", scope:"bar"},
+  {nome:"H2OH LIMONETO", unidade:"UN", scope:"bar"},
+  {nome:"SCHUPPERS LATA", unidade:"UN", scope:"bar"},
+  {nome:"SPRIT 2 LT", unidade:"UN", scope:"bar"},
+  {nome:"SPRIT LATA", unidade:"UN", scope:"bar"},
+  {nome:"V. ALTO LOS ROMEROS CARMENERE", unidade:"UN", scope:"bar"},
+  {nome:"V. CARMEN PREMIER CABER SAUV 750 ML", unidade:"UN", scope:"bar"},
+  {nome:"V. CARMEN PREMIER CARMENERE 750 ML", unidade:"UN", scope:"bar"},
+  {nome:"V. CARTA VIEJA CABERNET SAUV. 375 ML", unidade:"UN", scope:"bar"},
+  {nome:"V. CARTA VIEJA CABERNET SAUV. 750 ML", unidade:"UN", scope:"bar"},
+  {nome:"V. CARTA VIEJA MERLOT 750 ML", unidade:"UN", scope:"bar"},
+  {nome:"V. CHAC CHAC CABERNET FRANC", unidade:"UN", scope:"bar"},
+  {nome:"V. CONCHA Y TORO CABERNET SAUVIGN", unidade:"UN", scope:"bar"},
+  {nome:"V. CONCHA Y TORO CARMENERE", unidade:"UN", scope:"bar"},
+  {nome:"V. CONCHA Y TORO MALBEC", unidade:"UN", scope:"bar"},
+  {nome:"V. CORDEIRO CABERNET SAUVIGNON", unidade:"UN", scope:"bar"},
+  {nome:"V. CORDEIRO MALBEC", unidade:"UN", scope:"bar"},
+  {nome:"V. DON SIMON", unidade:"UN", scope:"bar"},
+  {nome:"V. D.V. CATENA MALBEC MALBEC", unidade:"UN", scope:"bar"},
+  {nome:"V. D.V. CATENA PINOT NOIR", unidade:"UN", scope:"bar"},
+  {nome:"V. KOYLE CABERNET SAUVIGNON", unidade:"UN", scope:"bar"},
+  {nome:"V. LA LINDA CABERNET SAUVIGNON", unidade:"UN", scope:"bar"},
+  {nome:"V. LA LINDA MALBEC", unidade:"UN", scope:"bar"},
+  {nome:"V. LAFIOLE", unidade:"UN", scope:"bar"},
+  {nome:"V. LEYDA CABERNET SAUVIGNON", unidade:"UN", scope:"bar"},
+  {nome:"V. LEYDA PINOT NOIR", unidade:"UN", scope:"bar"},
+  {nome:"V. PORTADA", unidade:"UN", scope:"bar"},
+  {nome:"V. SANTA EMA 375 ML", unidade:"UN", scope:"bar"},
+  {nome:"V. STA FELICIDADE SECO", unidade:"UN", scope:"bar"},
+  {nome:"V. STA FELICIDADE SUAVE", unidade:"UN", scope:"bar"},
+  {nome:"V. UNDURRAGA CABERNET SAUVIGNON", unidade:"UN", scope:"bar"},
+  {nome:"V. UNDURRAGA CARMENERE", unidade:"UN", scope:"bar"},
+  {nome:"V. UNDURRAGA CABERNET MERLOT", unidade:"UN", scope:"bar"},
+  {nome:"V. 120 CABERNET SAUVIGONO 187,5 ML", unidade:"UN", scope:"bar"},
+  {nome:"V. 120 CABERNET CARMENERE", unidade:"UN", scope:"bar"},
+  {nome:"V. 3 MEDALHAS CABERNET", unidade:"UN", scope:"bar"},
+  {nome:"ICE TEA (PO)", unidade:"KG", scope:"bar"},
+  {nome:"XAROPE ABACAXI C/ HORTELA", unidade:"L", scope:"bar"},
+  {nome:"XAROPE CRANBERRY", unidade:"L", scope:"bar"},
+  {nome:"XAROPE LIMÃO SICILIANO", unidade:"L", scope:"bar"},
+  {nome:"XAROPE MAÇÃ VERDE", unidade:"L", scope:"bar"},
+  {nome:"XAROPE PINK LEMONADE", unidade:"L", scope:"bar"},
+  {nome:"XAROPE TANGERINA", unidade:"L", scope:"bar"},
+  {nome:"ABACAXI CONGELADO", unidade:"KG", scope:"bar"},
+  {nome:"ABACAXI FRUTA INTEIRA", unidade:"KG", scope:"bar"},
+  {nome:"APEROL", unidade:"L", scope:"bar"},
+  {nome:"ALECRIM FRESCO", unidade:"KG", scope:"bar"},
+  {nome:"ANIZ ESTRELADO", unidade:"KG", scope:"bar"},
+  {nome:"BITTER CAMPARI", unidade:"L", scope:"bar"},
+  {nome:"CACHAÇA", unidade:"L", scope:"bar"},
+  {nome:"CANELA EM PAU", unidade:"KG", scope:"bar"},
+  {nome:"ENERGETICO TROPICAL", unidade:"UN", scope:"bar"},
+  {nome:"ENERGETICO RED BULL", unidade:"UN", scope:"bar"},
+  {nome:"ESPUMANTE SALTON", unidade:"L", scope:"bar"},
+  {nome:"FRUTAS VERMELHAS CONGELADAS", unidade:"KG", scope:"bar"},
+  {nome:"GENGIBRE", unidade:"KG", scope:"bar"},
+  {nome:"GIN GORDONS", unidade:"L", scope:"bar"},
+  {nome:"GIN TANQUERAY", unidade:"L", scope:"bar"},
+  {nome:"GROSELHA", unidade:"KG", scope:"bar"},
+  {nome:"LARANJA", unidade:"KG", scope:"bar"},
+  {nome:"LEITE COCO", unidade:"L", scope:"bar"},
+  {nome:"LIMAO THAITI", unidade:"KG", scope:"bar"},
+  {nome:"LIMAO SICILIANO", unidade:"KG", scope:"bar"},
+  {nome:"LIMAO DESIDRATADO", unidade:"UN", scope:"bar"},
+  {nome:"MARACUJA", unidade:"KG", scope:"bar"},
+  {nome:"MORANGO CONGELADO", unidade:"KG", scope:"bar"},
+  {nome:"PIMENTA DENTE DE MOCA", unidade:"UN", scope:"bar"},
+  {nome:"PIMENTA ROSA", unidade:"UN", scope:"bar"},
+  {nome:"RAPADURA", unidade:"KG", scope:"bar"},
+  {nome:"RUM", unidade:"L", scope:"bar"},
+  {nome:"VERMOUTH MARTINI", unidade:"L", scope:"bar"},
+  {nome:"VODKA", unidade:"L", scope:"bar"},
+  {nome:"ZIMBRO", unidade:"UN", scope:"bar"},
+  {nome:"WISKY", unidade:"L", scope:"bar"},
+
+  // PRODUÇÃO / CÂMARA FRIA (using KG)
+  {nome:"ALICHE", unidade:"KG", scope:"producao"},
+  {nome:"BACON", unidade:"KG", scope:"producao"},
+  {nome:"BANHA", unidade:"KG", scope:"producao"},
+  {nome:"BROCOLIS", unidade:"KG", scope:"producao"},
+  {nome:"CAMARÃO", unidade:"KG", scope:"producao"},
+  {nome:"CARNE SECA", unidade:"KG", scope:"producao"},
+  {nome:"CHAMPIGNON", unidade:"KG", scope:"producao"},
+  {nome:"COGUMELO SHIMEJI", unidade:"KG", scope:"producao"},
+  {nome:"COGUMELO SHITAKE", unidade:"KG", scope:"producao"},
+  {nome:"COXA/SOBRECOXA FRANGO", unidade:"KG", scope:"producao"},
+  {nome:"ERVILHA CONGELADA", unidade:"KG", scope:"producao"},
+  {nome:"FILE DE FRANGO", unidade:"KG", scope:"producao"},
+  {nome:"FILET MIGNON", unidade:"KG", scope:"producao"},
+  {nome:"LINGUIÇA CALABRESA", unidade:"KG", scope:"producao"},
+  {nome:"LINGUIÇA TOSCANA", unidade:"KG", scope:"producao"},
+  {nome:"LOMBO", unidade:"KG", scope:"producao"},
+  {nome:"MORTADELA", unidade:"KG", scope:"producao"},
+  {nome:"PICANHA", unidade:"KG", scope:"producao"},
+  {nome:"PRESUNTO", unidade:"KG", scope:"producao"},
+  {nome:"PRESUNTO DE PARMA", unidade:"KG", scope:"producao"},
+  {nome:"PEITO DE PERU", unidade:"KG", scope:"producao"},
+  {nome:"QUEIJO CREAM CHEESE", unidade:"KG", scope:"producao"},
+  {nome:"QUEIJO GORGONZOLA", unidade:"KG", scope:"producao"},
+  {nome:"QUEIJO MUÇARELA", unidade:"KG", scope:"producao"},
+  {nome:"QUEIJO MUÇARELA DE BUFALA", unidade:"KG", scope:"producao"},
+  {nome:"QUEIJO PARMESAO", unidade:"KG", scope:"producao"},
+  {nome:"QUEIJO PROVOLONE", unidade:"KG", scope:"producao"},
+  {nome:"QUEIJO RICOTA", unidade:"KG", scope:"producao"},
+  {nome:"REQUEIJAO CATUPIRY", unidade:"KG", scope:"producao"},
+  {nome:"REQUEIJAO LAZPER", unidade:"KG", scope:"producao"},
+  {nome:"REQUEIJAO CHEDDER", unidade:"KG", scope:"producao"},
+  {nome:"SALAME PEPERONI", unidade:"KG", scope:"producao"},
+  {nome:"TOFU", unidade:"KG", scope:"producao"},
+  {nome:"TOMATE", unidade:"KG", scope:"producao"},
+  {nome:"TOMATE CEREJA", unidade:"KG", scope:"producao"},
+  {nome:"TOMATE SECO", unidade:"KG", scope:"producao"},
+  {nome:"MOLHO BRANCO", unidade:"KG", scope:"producao"},
+  {nome:"MOLHO STROGONOFF", unidade:"KG", scope:"producao"},
+  {nome:"COSTELINHA", unidade:"KG", scope:"producao"},
+  {nome:"COCADA", unidade:"KG", scope:"producao"},
+  {nome:"BURRATINA", unidade:"KG", scope:"producao"}
+];
+
+const LS_CATALOG = 'catalog_produtos_v1';
+const LS_BALANCE = 'balanco_entries_v1';
+
+// load catalog from storage or default
+function loadCatalog(){
+  try{
+    const raw = localStorage.getItem(LS_CATALOG);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  localStorage.setItem(LS_CATALOG, JSON.stringify(DEFAULT_PRODUCTS));
+  return DEFAULT_PRODUCTS.slice();
+}
+
+// save catalog (after manual add)
+function saveCatalog(arr){
+  localStorage.setItem(LS_CATALOG, JSON.stringify(arr));
+}
+
+// balance entries: array of {produto, unidade, deposito, camara, freezer, bar, obs}
+function loadBalance(){ try{ return JSON.parse(localStorage.getItem(LS_BALANCE) || '[]'); }catch(e){return [];} }
+function saveBalance(a){ localStorage.setItem(LS_BALANCE, JSON.stringify(a)); }
+
+let CATALOG = loadCatalog();
+let BALANCE = loadBalance();
+
+// UI refs
+const screenHome = document.getElementById('screenHome');
+const screenCatalog = document.getElementById('screenCatalog');
+const screenList = document.getElementById('screenList');
+const screenAdd = document.getElementById('screenAdd');
+const catalogGrid = document.getElementById('catalogGrid');
+const catalogTitle = document.getElementById('catalogTitle');
+const addedContainer = document.getElementById('addedContainer');
+
+const modal = document.getElementById('modal');
+const modalTitle = document.getElementById('modalTitle');
+const modalUnit = document.getElementById('modalUnit');
+const modalSector = document.getElementById('modalSector');
+const modalQty = document.getElementById('modalQty');
+const modalSum = document.getElementById('modalSum');
+
+// navigation buttons
+document.getElementById('btnProducao').addEventListener('click', ()=>openCatalog('producao'));
+document.getElementById('btnBar').addEventListener('click', ()=>openCatalog('bar'));
+document.getElementById('backToHome').addEventListener('click', ()=>showHome());
+document.getElementById('btnHome').addEventListener('click', ()=>showHome());
+document.getElementById('btnVerAdicionados').addEventListener('click', ()=>showAdded());
+document.getElementById('btnVerListaFromCatalog').addEventListener('click', ()=>showAdded());
+document.getElementById('btnCadastrar').addEventListener('click', ()=>openAdd());
+document.getElementById('backFromAdd').addEventListener('click', ()=>showHome());
+document.getElementById('backFromList').addEventListener('click', ()=>showHome());
+
+document.getElementById('saveNewProd').addEventListener('click', ()=>{
+  const n = document.getElementById('newName').value.trim();
+  const u = document.getElementById('newUnit').value;
+  const s = document.getElementById('newScope').value;
+  if(!n){ alert('Digite o nome do produto'); return; }
+  // avoid duplicates by name (case-insensitive)
+  if(CATALOG.find(p=>p.nome.toLowerCase()===n.toLowerCase())){ alert('Produto já existe'); return; }
+  const prod = {nome:n.toUpperCase(), unidade:u, scope:s};
+  CATALOG.push(prod);
+  saveCatalog(CATALOG);
+  alert('Produto salvo no catálogo');
+  document.getElementById('newName').value='';
+  showHome();
+});
+
+// export pdf button (home)
+document.getElementById('btnExport').addEventListener('click', ()=>exportPDF());
+
+// HOME / screens
+function showHome(){
+  screenHome.style.display='block';
+  screenCatalog.style.display='none';
+  screenList.style.display='none';
+  screenAdd.style.display='none';
+}
+
+function openAdd(){
+  screenHome.style.display='none';
+  screenCatalog.style.display='none';
+  screenList.style.display='none';
+  screenAdd.style.display='block';
+}
+
+function openCatalog(scope){
+  screenHome.style.display='none';
+  screenCatalog.style.display='block';
+  screenList.style.display='none';
+  screenAdd.style.display='none';
+  renderCatalog(scope);
+}
+
+function showAdded(){
+  screenHome.style.display='none';
+  screenCatalog.style.display='none';
+  screenList.style.display='block';
+  screenAdd.style.display='none';
+  renderAdded();
+}
+
+// render catalog into two-column grid
+function renderCatalog(scope){
+  catalogGrid.innerHTML='';
+  catalogTitle.textContent = scope==='producao' ? 'Produção' : 'Bar';
+  const list = CATALOG.filter(p=>p.scope===scope).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR',{sensitivity:'base'}));
+  for(const p of list){
+    const btn = document.createElement('button');
+    btn.className='prod-btn';
+    // show minimal meta (name + unit)
+    btn.innerHTML = `<strong style="font-size:14px">${p.nome}</strong><small>${p.unidade}</small>`;
+    btn.addEventListener('click', ()=>openModalForProduct(p));
+    catalogGrid.appendChild(btn);
+  }
+}
+
+// modal logic
+let currentProduct = null;
+function openModalForProduct(p){
+  currentProduct = p;
+  modalTitle.textContent = p.nome;
+  modalUnit.value = p.unidade || '';
+  modalSector.value = p.scope === 'bar' ? 'bar' : 'deposito';
+  modalQty.value='';
+  modalSum.checked = true;
+  modal.style.display='flex';
+  setTimeout(()=> modalQty.focus(),150);
+}
+
+document.getElementById('modalCancel').addEventListener('click', ()=>{ modal.style.display='none'; currentProduct=null; });
+
+// save from modal
+document.getElementById('modalSave').addEventListener('click', ()=>{
+  if(!currentProduct){ modal.style.display='none'; return; }
+  let q = parseFloat(modalQty.value || '0');
+  if(isNaN(q) || q <= 0){ alert('Informe quantidade válida'); return; }
+  const sector = modalSector.value; // deposito/camara/freezer/bar
+  const sum = modalSum.checked;
+
+  // find or create entry in BALANCE
+  let entry = BALANCE.find(e => e.produto === currentProduct.nome);
+  if(!entry){
+    entry = {produto: currentProduct.nome, unidade: currentProduct.unidade || 'UN', deposito:0, camara:0, freezer:0, bar:0, obs:''};
+    BALANCE.push(entry);
+  }
+  if(sum) entry[sector] = Number(( (entry[sector] || 0) + q ).toFixed(3));
+  else entry[sector] = Number(q.toFixed(3));
+
+  saveBalance(BALANCE);
+  modal.style.display='none';
+  alert('Salvo!');
+  renderAdded(); // update added list if open
+  currentProduct = null;
+});
+
+// render added entries (with edit)
+function renderAdded(){
+  addedContainer.innerHTML='';
+  if(BALANCE.length === 0){
+    addedContainer.innerHTML = '<div class="small">Nenhum produto adicionado ainda.</div>';
+    return;
+  }
+  // sort by product
+  const sorted = BALANCE.slice().sort((a,b)=>a.produto.localeCompare(b.produto,'pt-BR',{sensitivity:'base'}));
+  for(const e of sorted){
+    const div = document.createElement('div');
+    div.className='entry';
+    div.innerHTML = `<div><strong>${e.produto}</strong><div class="small">${e.unidade} • D:${e.deposito || 0} | C:${e.camara || 0} | F:${e.freezer || 0} | B:${e.bar || 0}</div></div>
+                     <div style="display:flex;gap:8px">
+                       <button class="link" title="Editar" style="background:transparent;border:none;color:var(--petroleo);cursor:pointer">✎</button>
+                       <button class="link" title="Remover" style="background:transparent;border:none;color:#c00;cursor:pointer">🗑</button>
+                     </div>`;
+    // Edit open modal: load product by name to let user edit
+    div.querySelectorAll('button')[0].addEventListener('click', ()=>{
+      // find product in catalog to get unit and scope (if exists)
+      const catalogProd = CATALOG.find(p => p.nome === e.produto);
+      currentProduct = catalogProd || {nome:e.produto, unidade:e.unidade || 'UN', scope:'producao'};
+      modalTitle.textContent = currentProduct.nome;
+      modalUnit.value = currentProduct.unidade || e.unidade || 'UN';
+      modalSector.value = 'deposito';
+      modalQty.value = 0;
+      modalSum.checked = false; // default to replace when editing from entry
+      modal.style.display = 'flex';
+      // When saving, to edit existing fields we rely on modalSave handler which will add to selected sector.
+      // To offer true "edit" (replace) for a selected sector, user can uncheck "Somar" and enter new qty.
+    });
+    // Remove entry
+    div.querySelectorAll('button')[1].addEventListener('click', ()=>{
+      if(!confirm('Remover esse produto das adições?')) return;
+      BALANCE = BALANCE.filter(x => x.produto !== e.produto);
+      saveBalance(BALANCE);
+      renderAdded();
+    });
+
+    addedContainer.appendChild(div);
+  }
+}
+
+// Export PDF: if BALANCE empty, export catalog (names + unidade) — user asked to test "vazio"
+function exportPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p','pt','a4');
+  const now = new Date();
+  doc.setFontSize(14);
+  doc.text('Relatório de Estoque', 40, 40);
+  doc.setFontSize(10);
+  doc.text('Gerado em: ' + now.toLocaleString(), 40, 56);
+
+  if(BALANCE.length === 0){
+    // export catalog (only names & unit) grouped by scope
+    const prodByScope = {};
+    for(const p of CATALOG){
+      if(!prodByScope[p.scope]) prodByScope[p.scope] = [];
+      prodByScope[p.scope].push([p.nome, p.unidade || 'UN']);
+    }
+    let y = 80;
+    for(const scope of Object.keys(prodByScope)){
+      const heading = scope === 'producao' ? 'PRODUÇÃO' : (scope === 'bar' ? 'BAR' : scope.toUpperCase());
+      doc.setFontSize(12);
+      doc.text(heading, 40, y);
+      y += 12;
+      doc.autoTable({
+        startY: y,
+        head: [['Produto','Unidade']],
+        body: prodByScope[scope],
+        theme: 'grid',
+        headStyles: { fillColor: [15,95,92], textColor: 255 },
+        styles: { fontSize: 9, cellPadding: 4 }
+      });
+      y = doc.lastAutoTable.finalY + 12;
+    }
+  } else {
+    // produce table like: Produto | Depósito | Câmara | Freezer | Bar | Total
+    const head = [['Produto','Depósito','Câmara','Freezer','Bar','Total']];
+    const body = BALANCE.map(b => {
+      const dep = b.deposito || 0;
+      const cam = b.camara || 0;
+      const fr = b.freezer || 0;
+      const bar = b.bar || 0;
+      const total = Number((dep + cam + fr + bar).toFixed(3));
+      return [b.produto, dep, cam, fr, bar, total];
+    });
+    doc.autoTable({
+      startY: 80,
+      head,
+      body,
+      theme: 'grid',
+      headStyles: { fillColor: [15,95,92], textColor:255 },
+      styles: { fontSize:9, cellPadding:4 }
+    });
+  }
+
+  doc.save('balanco_' + now.toISOString().slice(0,19).replace(/[:T]/g,'-') + '.pdf');
+}
+
+// initial render
+showHome();
+
+// expose opening functions for quick testing (optional)
+window.openCatalog = openCatalog;
+window.showAdded = showAdded;
+window.exportPDF = exportPDF;
+</script>
+</body>
+</html>
