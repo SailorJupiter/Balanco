@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>Balanço Mobile — Produção & Bar</title>
 
 <!-- jsPDF + autoTable (CDN) -->
@@ -12,192 +12,259 @@
 <style>
   :root{
     --petroleo:#0f5f5c;
-    --grafite:#2b2b2b;
-    --bg:#f6f6f7;
+    --petroleo-strong:#0d3f40;
+    --grafite:#222222;
+    --bg:#f4f6f6;
     --card:#ffffff;
-    --muted:#666;
-    --accent:#7e1e1e;
-    --radius:14px;
+    --muted:#6b6b74;
   }
-  html,body{height:100%;margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial}
-  .frame{max-width:520px;margin:0 auto;padding:16px}
-  .card{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:14px;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
-  .row{display:flex;gap:8px;align-items:center}
-  .title{font-size:18px;color:var(--petroleo);margin:0 0 8px 0}
-  .btn{background:var(--petroleo);color:#fff;border:none;padding:12px;border-radius:12px;font-size:15px;cursor:pointer}
-  .btn.secondary{background:var(--accent)}
-  .small{color:var(--muted);font-size:13px}
-  /* catalog grid: 2 columns on mobile */
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-  .prod-btn{background:var(--grafite);color:#fff;padding:12px;border-radius:12px;border:none;text-align:left;cursor:pointer;display:flex;flex-direction:column;min-height:56px}
-  .prod-btn small{color:#ddd;margin-top:6px}
-  /* dynamic screens */
-  #screenCatalog, #screenList, #screenAdd { display:none; }
-  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-  .link{background:transparent;border:none;color:var(--petroleo);font-weight:600;cursor:pointer}
-  /* modal */
-  .modal{position:fixed;inset:0;background:rgba(0,0,0,0.35);display:none;align-items:flex-end;padding:12px;z-index:50}
-  .sheet{background:var(--card);width:100%;max-width:560px;border-radius:14px 14px 6px 6px;padding:14px}
-  .sheet h3{margin:0 0 8px 0}
-  .field{display:flex;justify-content:space-between;align-items:center;margin:10px 0}
-  input[type="text"], input[type="number"], select{padding:10px;border-radius:10px;border:1px solid #e6e6e9;width:60%;text-align:right}
-  label{width:36%}
-  .sheet .actions{display:flex;gap:8px;margin-top:12px}
-  .sheet .actions button{flex:1;padding:10px;border-radius:10px;border:none;cursor:pointer}
-  .saveBtn{background:var(--petroleo);color:#fff}
-  .cancelBtn{background:#eee;color:#111}
-  /* added list entries */
-  .entry{background:#fff;border-radius:12px;padding:10px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06);display:flex;justify-content:space-between;align-items:center}
-  .entry small{color:var(--muted)}
-  /* responsive tweaks */
-  @media(min-width:720px){
-    .frame{padding:24px}
-    .grid{gap:14px}
+  *{box-sizing:border-box;-webkit-tap-highlight-color: rgba(0,0,0,0.06);}
+  html,body{height:100%;margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial;color:#222}
+  .wrap{max-width:520px;margin:0 auto;padding:16px}
+  .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .title{font-size:18px;color:var(--petroleo);font-weight:700}
+  .btn-pdf{background:transparent;border:1px solid var(--petroleo);color:var(--petroleo);padding:8px 10px;border-radius:10px;cursor:pointer;min-height:40px}
+
+  .card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
+  .card h3{margin:0 0 10px 0;color:var(--petroleo-strong)}
+  .row-buttons{display:flex;gap:10px;flex-wrap:wrap}
+  .main-btn{flex:1;background:var(--petroleo-strong);color:white;padding:12px;border-radius:12px;border:none;font-size:15px;cursor:pointer;min-height:44px}
+  .secondary-btn{background:var(--grafite);color:white;padding:10px;border-radius:10px;border:none;cursor:pointer;min-height:44px}
+
+  .prod-search{width:100%;padding:10px;border-radius:10px;border:1px solid #e6e6e9;margin-bottom:10px;font-size:15px}
+  .prod-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;max-height:62vh;overflow:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch}
+  .prod-btn{background:var(--grafite);color:white;padding:12px;border-radius:12px;border:none;text-align:left;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-size:14px;min-height:54px}
+  .prod-name{flex:1;padding-right:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .muted{color:var(--muted);font-size:13px}
+  .actions{display:flex;gap:10px;margin-top:10px}
+  .wide{width:100%}
+
+  /* modal bottom sheet */
+  .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);align-items:flex-end;justify-content:center;padding:12px;z-index:60}
+  .sheet{width:100%;max-width:520px;background:var(--card);border-radius:14px 14px 6px 6px;padding:14px;box-shadow:0 -6px 24px rgba(0,0,0,0.12)}
+  .sheet h4{margin:0 0 8px 0}
+  .form-row{display:flex;align-items:center;gap:8px;margin:8px 0;flex-wrap:wrap}
+  .form-row label{min-width:110px;color:#333}
+  .form-row input, .form-row select{flex:1;padding:10px;border-radius:8px;border:1px solid #e6e6e9;font-size:15px}
+  .modal-actions{display:flex;gap:8px;margin-top:12px}
+  .btn-save{background:var(--petroleo);color:#fff;padding:10px;border-radius:10px;border:none;flex:1;min-height:44px}
+  .btn-cancel{background:#ddd;color:#222;padding:10px;border-radius:10px;border:none;flex:1;min-height:44px}
+
+  .entry{background:#fff;border-radius:10px;padding:10px;margin:8px 0;box-shadow:0 4px 12px rgba(0,0,0,0.06);display:flex;justify-content:space-between;align-items:center}
+  .entry small{color:var(--muted);display:block;font-size:12px}
+
+  .footer-actions{position:fixed;left:0;right:0;bottom:0;padding:10px;background:linear-gradient(180deg, rgba(244,246,246,0), #fff 8%), #fff;display:flex;gap:10px;justify-content:center;box-shadow:0 -6px 18px rgba(0,0,0,0.06)}
+  .footer-actions .secondary-btn{flex:1;max-width:360px}
+
+  @media(min-width:700px){
+    .wrap{padding:24px}
+    .prod-grid{gap:12px}
+    .footer-actions{display:none}
   }
 </style>
 </head>
 <body>
-  <div class="frame">
-    <div class="card">
-      <div class="topbar">
-        <div>
-          <h1 class="title">Balanço — Produção & Bar</h1>
-          <div class="small">Toque no produto → insira quantidade</div>
-        </div>
-        <div>
-          <button id="btnHome" class="link">Home</button>
-        </div>
+  <div class="wrap">
+    <div class="header">
+      <div class="title">Balanço Mobile</div>
+      <button class="btn-pdf" id="openPdfModal">Gerar PDF</button>
+    </div>
+
+    <!-- MENU -->
+    <div class="card" id="menu">
+      <h3>HOME</h3>
+      <div class="row-buttons">
+        <button class="main-btn" id="btnProducao">Produção</button>
+        <button class="main-btn" id="btnBar">Bar</button>
+        <button class="secondary-btn" id="btnCadastrar">Cadastrar produto</button>
+      </div>
+      <div class="muted" style="margin-top:10px">Escolha “Produção” ou “Bar” para abrir a lista de produtos.</div>
+    </div>
+
+    <!-- PRODUCTS VIEW -->
+    <div class="card" id="prodCard" style="display:none">
+      <h3 id="prodTitle">Produtos</h3>
+      <input id="searchInput" class="prod-search" placeholder="Buscar produto..." />
+      <div class="prod-grid" id="prodGrid" aria-live="polite" role="list"></div>
+      <div class="actions" style="margin-top:12px">
+        <button class="secondary-btn wide" id="backHome">Voltar</button>
+        <button class="secondary-btn wide" id="viewAddedBtn">Ver itens adicionados</button>
+      </div>
+    </div>
+
+    <!-- ADDED LIST -->
+    <div class="card" id="addedCard" style="display:none">
+      <h3 id="addedTitle">Itens adicionados</h3>
+      <div id="addedList"></div>
+      <div style="margin-top:10px" class="actions">
+        <button class="secondary-btn wide" id="backFromAdded">Voltar</button>
+        <button class="secondary-btn wide" id="clearBalance">Limpar lista</button>
+      </div>
+    </div>
+
+    <!-- CADASTRO -->
+    <div class="card" id="cadCard" style="display:none">
+      <h3>Cadastrar produto</h3>
+      <div class="form-row"><label>Nome</label><input id="newName" placeholder="Nome do produto"></div>
+      <div class="form-row"><label>Unidade</label>
+        <select id="newUnit"><option value="UN">UN</option><option value="KG">KG</option><option value="L">L</option></select>
+      </div>
+      <div class="form-row"><label>Categoria</label>
+        <select id="newScope"><option value="producao">Produção</option><option value="bar">Bar</option></select>
+      </div>
+      <div class="actions"><button class="btn-save" id="saveNew">Salvar produto</button><button class="btn-cancel" id="cancelNew">Cancelar</button></div>
+    </div>
+  </div>
+
+  <!-- MODAL QUANTIDADE / EDIT -->
+  <div id="modal" class="modal" aria-hidden="true">
+    <div class="sheet" role="dialog" aria-modal="true">
+      <h4 id="modalName">Produto</h4>
+
+      <div class="form-row"><label>Setor</label>
+        <select id="sectorSelect"><option value="deposito">Depósito</option><option value="camara">Câmara Fria</option><option value="freezer">Freezer</option><option value="bar">Bar</option></select>
       </div>
 
-      <!-- HOME -->
-      <div id="screenHome">
-        <div style="display:flex;gap:8px;margin-bottom:10px;">
-          <button class="btn" id="btnProducao">Produção</button>
-          <button class="btn" id="btnBar">Bar</button>
-        </div>
+      <div class="form-row"><label>Quantidade</label><input id="qtyInput" inputmode="decimal" placeholder="0"></div>
 
-        <div style="display:flex;gap:8px;">
-          <button class="btn secondary" id="btnCadastrar">Cadastrar produto</button>
-          <button class="btn" id="btnVerAdicionados">Ver lista</button>
-        </div>
+      <div style="margin-top:8px" class="muted">Ao salvar, o valor será somado ao já existente.</div>
 
-        <div style="margin-top:12px">
-          <button class="btn secondary" id="btnExport">Gerar PDF (data/hora)</button>
-        </div>
-      </div>
-
-      <!-- CATALOG -->
-      <div id="screenCatalog">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <strong id="catalogTitle">Catálogo</strong>
-          <div>
-            <button class="link" id="backToHome">Voltar</button>
-          </div>
-        </div>
-
-        <!-- Two-column grid -->
-        <div class="grid" id="catalogGrid">
-          <!-- products inserted by JS -->
-        </div>
-
-        <div style="margin-top:12px">
-          <button class="btn" id="btnVerListaFromCatalog">Ver Lista (adicionados)</button>
-        </div>
-      </div>
-
-      <!-- ADDED LIST -->
-      <div id="screenList">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <strong>Produtos adicionados</strong>
-          <button class="link" id="backFromList">Voltar</button>
-        </div>
-        <div id="addedContainer"></div>
-      </div>
-
-      <!-- FORM (Cadastrar) -->
-      <div id="screenAdd">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <strong>Cadastrar produto</strong>
-          <button class="link" id="backFromAdd">Voltar</button>
-        </div>
-        <div>
-          <label>Nome</label><input type="text" id="newName" placeholder="Ex: BACON">
-        </div>
-        <div style="margin-top:8px">
-          <label>Unidade</label>
-          <select id="newUnit" style="width:60%;float:right">
-            <option value="UN">UN</option>
-            <option value="KG">KG</option>
-            <option value="L">L</option>
-          </select>
-        </div>
-        <div style="margin-top:8px">
-          <label>Categoria</label>
-          <select id="newScope" style="width:60%;float:right">
-            <option value="producao">Produção</option>
-            <option value="bar">Bar</option>
-          </select>
-        </div>
-        <div style="margin-top:12px">
-          <button class="btn" id="saveNewProd">Salvar produto</button>
-        </div>
+      <div class="modal-actions">
+        <button class="btn-save" id="modalSave">Salvar</button>
+        <button class="btn-cancel" id="modalClose">Cancelar</button>
       </div>
     </div>
   </div>
 
-  <!-- modal bottom sheet -->
-  <div id="modal" class="modal">
+  <!-- MODAL PDF CHOICE -->
+  <div id="modalPdf" class="modal" aria-hidden="true">
     <div class="sheet">
-      <h3 id="modalTitle">Produto</h3>
-
-      <div class="field">
-        <label>Unidade</label><input id="modalUnit" type="text" readonly>
-      </div>
-
-      <div class="field">
-        <label>Setor</label>
-        <select id="modalSector">
-          <option value="deposito">Depósito</option>
-          <option value="camara">Câmara Fria</option>
-          <option value="freezer">Freezer</option>
-          <option value="bar">Bar</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label>Quantidade</label><input id="modalQty" type="number" inputmode="decimal" placeholder="0">
-      </div>
-
-      <div style="margin-top:6px">
-        <input id="modalSum" type="checkbox" checked> <label for="modalSum">Somar ao existente</label>
-      </div>
-
-      <div class="actions">
-        <button class="saveBtn" id="modalSave">Salvar</button>
-        <button class="cancelBtn" id="modalCancel">Cancelar</button>
+      <h4>Exportar PDF</h4>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+        <button class="btn-save" id="pdfProducao">Só Produção</button>
+        <button class="btn-save" id="pdfBar">Só Bar</button>
+        <button class="btn-save" id="pdfAll">Completo</button>
+        <button class="btn-cancel" id="modalPdfClose">Cancelar</button>
       </div>
     </div>
+  </div>
+
+  <div class="footer-actions" id="footerActions" style="display:none">
+    <button class="secondary-btn" id="backHomeFooter">Voltar</button>
+    <button class="secondary-btn" id="viewAddedFooter">Ver itens adicionados</button>
   </div>
 
 <script>
-/* Catalog default (populated from your lists).
-   I included all BAR items you sent + PRODUÇÃO (câmara fria) items.
-   Units: bar -> UN, production -> KG (as you requested).
-   Catalog stored in localStorage key 'catalog_produtos'.
-*/
+/* ---------------------------
+   CATALOG (fixed + user added)
+--------------------------- */
 
-const DEFAULT_PRODUCTS = [
-  // BAR (many items)
+let CATALOG = [
+  { nome:"ABACAXI CONSERVA", unidade:"KG", scope:"producao" },
+  { nome:"ABACAXI DOCE", unidade:"KG", scope:"producao" },
+  { nome:"ABOBRINHA", unidade:"KG", scope:"producao" },
+  { nome:"AÇAFRÃO (CÚRCUMA)", unidade:"KG", scope:"producao" },
+  { nome:"AÇÚCAR CONFEITEIRO", unidade:"KG", scope:"producao" },
+  { nome:"AÇÚCAR CRISTAL", unidade:"KG", scope:"producao" },
+  { nome:"AÇÚCAR REFINADO", unidade:"KG", scope:"producao" },
+  { nome:"AÇÚCAR SACHE", unidade:"KG", scope:"producao" },
+  { nome:"ADOÇANTE", unidade:"KG", scope:"producao" },
+  { nome:"ALECRIM SECO", unidade:"KG", scope:"producao" },
+  { nome:"ALHO", unidade:"KG", scope:"producao" },
+  { nome:"ALHO DESIDRATADO", unidade:"KG", scope:"producao" },
+  { nome:"ATUM", unidade:"KG", scope:"producao" },
+  { nome:"AZEITE EXTRA VIRGEM", unidade:"L", scope:"producao" },
+  { nome:"AZEITE COMPOSTO", unidade:"L", scope:"producao" },
+  { nome:"AZEITONAS PRETAS", unidade:"KG", scope:"producao" },
+  { nome:"AZEITONAS VERDES", unidade:"KG", scope:"producao" },
+  { nome:"BANANA DA TERRA", unidade:"KG", scope:"producao" },
+  { nome:"BANANA PRATA", unidade:"KG", scope:"producao" },
+  { nome:"BATATA PALHA", unidade:"KG", scope:"producao" },
+  { nome:"BERINJELA", unidade:"KG", scope:"producao" },
+  { nome:"BICARBONATO DE SÓDIO", unidade:"KG", scope:"producao" },
+  { nome:"CACAU EM PÓ", unidade:"KG", scope:"producao" },
+  { nome:"CANELA EM PÓ", unidade:"KG", scope:"producao" },
+  { nome:"KETCHUP SALÃO", unidade:"KG", scope:"producao" },
+  { nome:"KETCHUP SACHE", unidade:"UN", scope:"producao" },
+  { nome:"CEBOLA", unidade:"KG", scope:"producao" },
+  { nome:"CEBOLA ROXA", unidade:"KG", scope:"producao" },
+  { nome:"CHOCOLATE BRANCO FORNEÁVEL", unidade:"KG", scope:"producao" },
+  { nome:"CHOCOLATE AO LEITE FORNEÁVEL", unidade:"KG", scope:"producao" },
+  { nome:"CHOCOLATE MEIO AMARGO FORNEÁVEL", unidade:"KG", scope:"producao" },
+  { nome:"CHOCOLATE CONFETE", unidade:"KG", scope:"producao" },
+  { nome:"CHOCOLATE GRANULADO", unidade:"KG", scope:"producao" },
+  { nome:"COBERTURA CHOCOLATE NESTLÉ", unidade:"KG", scope:"producao" },
+  { nome:"COBERTURA LEITINHO", unidade:"KG", scope:"producao" },
+  { nome:"COBERTURA SORVETE", unidade:"KG", scope:"producao" },
+  { nome:"COCO RALADO", unidade:"KG", scope:"producao" },
+  { nome:"COLORAU", unidade:"KG", scope:"producao" },
+  { nome:"CRAVO MOÍDO", unidade:"KG", scope:"producao" },
+  { nome:"CREME DE LEITE", unidade:"UN", scope:"producao" },
+  { nome:"DOCE DE LEITE", unidade:"KG", scope:"producao" },
+  { nome:"ERVA DOCE", unidade:"KG", scope:"producao" },
+  { nome:"ESCAROLA", unidade:"KG", scope:"producao" },
+  { nome:"FARINHA SÊMOLA", unidade:"KG", scope:"producao" },
+  { nome:"FARINHA TRIGO CANUELAS", unidade:"KG", scope:"producao" },
+  { nome:"FARINHA TRIGO VENTURELLI", unidade:"KG", scope:"producao" },
+  { nome:"FARINHA TRIGO 00 DI GRANDO VERDE", unidade:"KG", scope:"producao" },
+  { nome:"FARINHA TRIGO PASTINI BLUE", unidade:"KG", scope:"producao" },
+  { nome:"FARINHA TRIGO PUREZA", unidade:"KG", scope:"producao" },
+  { nome:"FARINHA TRIGO NACIONAL", unidade:"KG", scope:"producao" },
+  { nome:"FERMENTO FRESCO", unidade:"KG", scope:"producao" },
+  { nome:"FERMENTO SECO", unidade:"KG", scope:"producao" },
+  { nome:"FIGO EM CALDA", unidade:"KG", scope:"producao" },
+  { nome:"GOIABADA", unidade:"KG", scope:"producao" },
+  { nome:"LEITE", unidade:"KG", scope:"producao" },
+  { nome:"LEITE EM PÓ", unidade:"KG", scope:"producao" },
+  { nome:"LEMON PEPPER", unidade:"KG", scope:"producao" },
+  { nome:"MAÇÃ", unidade:"KG", scope:"producao" },
+  { nome:"MANJERICÃO FRESCO", unidade:"KG", scope:"producao" },
+  { nome:"MANJERICÃO SECO", unidade:"KG", scope:"producao" },
+  { nome:"MANTEIGA", unidade:"KG", scope:"producao" },
+  { nome:"MELAÇO DE CANA", unidade:"KG", scope:"producao" },
+  { nome:"MILHO VERDE CONSERVA", unidade:"KG", scope:"producao" },
+  { nome:"MOLHO BARBECUE", unidade:"KG", scope:"producao" },
+  { nome:"MOLHO PELATI", unidade:"KG", scope:"producao" },
+  { nome:"MOLHO PIMENTA", unidade:"KG", scope:"producao" },
+  { nome:"MORANGO", unidade:"KG", scope:"producao" },
+  { nome:"MOSTARDA (GALÃO)", unidade:"KG", scope:"producao" },
+  { nome:"MOSTARDA (SACHE)", unidade:"KG", scope:"producao" },
+  { nome:"NOZES", unidade:"KG", scope:"producao" },
+  { nome:"NOZ MOSCADA", unidade:"KG", scope:"producao" },
+  { nome:"NUTELLA", unidade:"KG", scope:"producao" },
+  { nome:"ÓLEO SOJA", unidade:"KG", scope:"producao" },
+  { nome:"ORÉGANO", unidade:"KG", scope:"producao" },
+  { nome:"OVOS", unidade:"UN", scope:"producao" },
+  { nome:"PAÇOCA", unidade:"KG", scope:"producao" },
+  { nome:"PALMITO CONSERVA", unidade:"KG", scope:"producao" },
+  { nome:"PÁPRICA DOCE", unidade:"KG", scope:"producao" },
+  { nome:"PÁPRICA PICANTE", unidade:"KG", scope:"producao" },
+  { nome:"PÊSSEGO EM CALDA", unidade:"KG", scope:"producao" },
+  { nome:"PIMENTA BIQUINHO", unidade:"KG", scope:"producao" },
+  { nome:"PIMENTA CALABRESA", unidade:"KG", scope:"producao" },
+  { nome:"PIMENTA DO REINO", unidade:"KG", scope:"producao" },
+  { nome:"PISTACHE (CASTANHA)", unidade:"KG", scope:"producao" },
+  { nome:"PISTACHE (CREME)", unidade:"KG", scope:"producao" },
+  { nome:"POLVILHO DOCE", unidade:"KG", scope:"producao" },
+  { nome:"POLVILHO AZEDO", unidade:"KG", scope:"producao" },
+  { nome:"RÚCULA", unidade:"KG", scope:"producao" },
+  { nome:"SAL CURA", unidade:"KG", scope:"producao" },
+  { nome:"SAL GROSSO", unidade:"KG", scope:"producao" },
+  { nome:"SAL REFINADO", unidade:"KG", scope:"producao" },
+  { nome:"SALSINHA", unidade:"KG", scope:"producao" },
+  { nome:"TOMATE", unidade:"KG", scope:"producao" },
+  { nome:"XERÉM", unidade:"KG", scope:"producao" },
+
   {nome:"AGUA C/ GAS", unidade:"UN", scope:"bar"},
   {nome:"AGUA C/ GAS (REFFIL) 1,5 LT", unidade:"UN", scope:"bar"},
   {nome:"AGUA S/ GAS", unidade:"UN", scope:"bar"},
   {nome:"AGUA TONICA LATA", unidade:"UN", scope:"bar"},
   {nome:"AGUA TONICA DIET LATA", unidade:"UN", scope:"bar"},
   {nome:"AGUA TONICA 1 LT", unidade:"UN", scope:"bar"},
-  {nome:"CERVEJA AMISTEL 600 ML", unidade:"UN", scope:"bar"},
+  {nome:"CERVEJA AMSTEL 600 ML", unidade:"UN", scope:"bar"},
   {nome:"CERVEJA BRAHMA 600 ML", unidade:"UN", scope:"bar"},
   {nome:"CERVEJA BRAHMA DUPLO MALTE 600 ML", unidade:"UN", scope:"bar"},
-  {nome:"CERVEJA BRAHMA S/ALC LATA", unidade:"UN", scope:"bar"},
   {nome:"CERVEJA EISENBAHN 600 ML", unidade:"UN", scope:"bar"},
   {nome:"CERVEJA HEINEKEN 600 ML", unidade:"UN", scope:"bar"},
   {nome:"CERVEJA HEINEKEN LONG NECK", unidade:"UN", scope:"bar"},
@@ -205,8 +272,6 @@ const DEFAULT_PRODUCTS = [
   {nome:"CERVEJA MALZBEER LATA /LONG NECK", unidade:"UN", scope:"bar"},
   {nome:"CERVEJA ORIGINAL 600 ML", unidade:"UN", scope:"bar"},
   {nome:"CERVEJA SKOL 600 ML", unidade:"UN", scope:"bar"},
-  {nome:"CERVEJA SKOL LATA", unidade:"UN", scope:"bar"},
-  {nome:"CHOPP HEINKEN", unidade:"UN", scope:"bar"},
   {nome:"COCA COLA 2 LT", unidade:"UN", scope:"bar"},
   {nome:"COCA COLA 2 LT ZERO", unidade:"UN", scope:"bar"},
   {nome:"COCA COLA 600 ML PET", unidade:"UN", scope:"bar"},
@@ -224,7 +289,7 @@ const DEFAULT_PRODUCTS = [
   {nome:"GUARANA ANT 600 ML", unidade:"UN", scope:"bar"},
   {nome:"GUARANA ANT LATA", unidade:"UN", scope:"bar"},
   {nome:"GUARANA ANT LATA DIET", unidade:"UN", scope:"bar"},
-  {nome:"H2OH LIMAO", unidade:"UN", scope:"bar"},
+  {nome:"H2OH LIMÃO", unidade:"UN", scope:"bar"},
   {nome:"H2OH LIMONETO", unidade:"UN", scope:"bar"},
   {nome:"SCHUPPERS LATA", unidade:"UN", scope:"bar"},
   {nome:"SPRIT 2 LT", unidade:"UN", scope:"bar"},
@@ -257,7 +322,7 @@ const DEFAULT_PRODUCTS = [
   {nome:"V. UNDURRAGA CABERNET SAUVIGNON", unidade:"UN", scope:"bar"},
   {nome:"V. UNDURRAGA CARMENERE", unidade:"UN", scope:"bar"},
   {nome:"V. UNDURRAGA CABERNET MERLOT", unidade:"UN", scope:"bar"},
-  {nome:"V. 120 CABERNET SAUVIGONO 187,5 ML", unidade:"UN", scope:"bar"},
+  {nome:"V. 120 CABERNET SAUVIGNON 187,5 ML", unidade:"UN", scope:"bar"},
   {nome:"V. 120 CABERNET CARMENERE", unidade:"UN", scope:"bar"},
   {nome:"V. 3 MEDALHAS CABERNET", unidade:"UN", scope:"bar"},
   {nome:"ICE TEA (PO)", unidade:"KG", scope:"bar"},
@@ -298,313 +363,379 @@ const DEFAULT_PRODUCTS = [
   {nome:"VODKA", unidade:"L", scope:"bar"},
   {nome:"ZIMBRO", unidade:"UN", scope:"bar"},
   {nome:"WISKY", unidade:"L", scope:"bar"},
-
-  // PRODUÇÃO / CÂMARA FRIA (using KG)
-  {nome:"ALICHE", unidade:"KG", scope:"producao"},
-  {nome:"BACON", unidade:"KG", scope:"producao"},
-  {nome:"BANHA", unidade:"KG", scope:"producao"},
-  {nome:"BROCOLIS", unidade:"KG", scope:"producao"},
-  {nome:"CAMARÃO", unidade:"KG", scope:"producao"},
-  {nome:"CARNE SECA", unidade:"KG", scope:"producao"},
-  {nome:"CHAMPIGNON", unidade:"KG", scope:"producao"},
-  {nome:"COGUMELO SHIMEJI", unidade:"KG", scope:"producao"},
-  {nome:"COGUMELO SHITAKE", unidade:"KG", scope:"producao"},
-  {nome:"COXA/SOBRECOXA FRANGO", unidade:"KG", scope:"producao"},
-  {nome:"ERVILHA CONGELADA", unidade:"KG", scope:"producao"},
-  {nome:"FILE DE FRANGO", unidade:"KG", scope:"producao"},
-  {nome:"FILET MIGNON", unidade:"KG", scope:"producao"},
-  {nome:"LINGUIÇA CALABRESA", unidade:"KG", scope:"producao"},
-  {nome:"LINGUIÇA TOSCANA", unidade:"KG", scope:"producao"},
-  {nome:"LOMBO", unidade:"KG", scope:"producao"},
-  {nome:"MORTADELA", unidade:"KG", scope:"producao"},
-  {nome:"PICANHA", unidade:"KG", scope:"producao"},
-  {nome:"PRESUNTO", unidade:"KG", scope:"producao"},
-  {nome:"PRESUNTO DE PARMA", unidade:"KG", scope:"producao"},
-  {nome:"PEITO DE PERU", unidade:"KG", scope:"producao"},
-  {nome:"QUEIJO CREAM CHEESE", unidade:"KG", scope:"producao"},
-  {nome:"QUEIJO GORGONZOLA", unidade:"KG", scope:"producao"},
-  {nome:"QUEIJO MUÇARELA", unidade:"KG", scope:"producao"},
-  {nome:"QUEIJO MUÇARELA DE BUFALA", unidade:"KG", scope:"producao"},
-  {nome:"QUEIJO PARMESAO", unidade:"KG", scope:"producao"},
-  {nome:"QUEIJO PROVOLONE", unidade:"KG", scope:"producao"},
-  {nome:"QUEIJO RICOTA", unidade:"KG", scope:"producao"},
-  {nome:"REQUEIJAO CATUPIRY", unidade:"KG", scope:"producao"},
-  {nome:"REQUEIJAO LAZPER", unidade:"KG", scope:"producao"},
-  {nome:"REQUEIJAO CHEDDER", unidade:"KG", scope:"producao"},
-  {nome:"SALAME PEPERONI", unidade:"KG", scope:"producao"},
-  {nome:"TOFU", unidade:"KG", scope:"producao"},
-  {nome:"TOMATE", unidade:"KG", scope:"producao"},
-  {nome:"TOMATE CEREJA", unidade:"KG", scope:"producao"},
-  {nome:"TOMATE SECO", unidade:"KG", scope:"producao"},
-  {nome:"MOLHO BRANCO", unidade:"KG", scope:"producao"},
-  {nome:"MOLHO STROGONOFF", unidade:"KG", scope:"producao"},
-  {nome:"COSTELINHA", unidade:"KG", scope:"producao"},
-  {nome:"COCADA", unidade:"KG", scope:"producao"},
-  {nome:"BURRATINA", unidade:"KG", scope:"producao"}
 ];
 
-const LS_CATALOG = 'catalog_produtos_v1';
-const LS_BALANCE = 'balanco_entries_v1';
+/* ---------------------------
+   USER CATALOG persistence
+--------------------------- */
+const CATALOG_KEY = 'CATALOG_user_v1';
+let USER_CATALOG = [];
 
-// load catalog from storage or default
-function loadCatalog(){
+function loadUserCatalog(){
   try{
-    const raw = localStorage.getItem(LS_CATALOG);
-    if(raw) return JSON.parse(raw);
-  }catch(e){}
-  localStorage.setItem(LS_CATALOG, JSON.stringify(DEFAULT_PRODUCTS));
-  return DEFAULT_PRODUCTS.slice();
+    USER_CATALOG = JSON.parse(localStorage.getItem(CATALOG_KEY) || '[]');
+  } catch(e){ USER_CATALOG = []; }
 }
 
-// save catalog (after manual add)
-function saveCatalog(arr){
-  localStorage.setItem(LS_CATALOG, JSON.stringify(arr));
+function persistUserCatalog(){
+  localStorage.setItem(CATALOG_KEY, JSON.stringify(USER_CATALOG));
 }
 
-// balance entries: array of {produto, unidade, deposito, camara, freezer, bar, obs}
-function loadBalance(){ try{ return JSON.parse(localStorage.getItem(LS_BALANCE) || '[]'); }catch(e){return [];} }
-function saveBalance(a){ localStorage.setItem(LS_BALANCE, JSON.stringify(a)); }
-
-let CATALOG = loadCatalog();
-let BALANCE = loadBalance();
-
-// UI refs
-const screenHome = document.getElementById('screenHome');
-const screenCatalog = document.getElementById('screenCatalog');
-const screenList = document.getElementById('screenList');
-const screenAdd = document.getElementById('screenAdd');
-const catalogGrid = document.getElementById('catalogGrid');
-const catalogTitle = document.getElementById('catalogTitle');
-const addedContainer = document.getElementById('addedContainer');
-
-const modal = document.getElementById('modal');
-const modalTitle = document.getElementById('modalTitle');
-const modalUnit = document.getElementById('modalUnit');
-const modalSector = document.getElementById('modalSector');
-const modalQty = document.getElementById('modalQty');
-const modalSum = document.getElementById('modalSum');
-
-// navigation buttons
-document.getElementById('btnProducao').addEventListener('click', ()=>openCatalog('producao'));
-document.getElementById('btnBar').addEventListener('click', ()=>openCatalog('bar'));
-document.getElementById('backToHome').addEventListener('click', ()=>showHome());
-document.getElementById('btnHome').addEventListener('click', ()=>showHome());
-document.getElementById('btnVerAdicionados').addEventListener('click', ()=>showAdded());
-document.getElementById('btnVerListaFromCatalog').addEventListener('click', ()=>showAdded());
-document.getElementById('btnCadastrar').addEventListener('click', ()=>openAdd());
-document.getElementById('backFromAdd').addEventListener('click', ()=>showHome());
-document.getElementById('backFromList').addEventListener('click', ()=>showHome());
-
-document.getElementById('saveNewProd').addEventListener('click', ()=>{
-  const n = document.getElementById('newName').value.trim();
-  const u = document.getElementById('newUnit').value;
-  const s = document.getElementById('newScope').value;
-  if(!n){ alert('Digite o nome do produto'); return; }
-  // avoid duplicates by name (case-insensitive)
-  if(CATALOG.find(p=>p.nome.toLowerCase()===n.toLowerCase())){ alert('Produto já existe'); return; }
-  const prod = {nome:n.toUpperCase(), unidade:u, scope:s};
-  CATALOG.push(prod);
-  saveCatalog(CATALOG);
-  alert('Produto salvo no catálogo');
-  document.getElementById('newName').value='';
-  showHome();
-});
-
-// export pdf button (home)
-document.getElementById('btnExport').addEventListener('click', ()=>exportPDF());
-
-// HOME / screens
-function showHome(){
-  screenHome.style.display='block';
-  screenCatalog.style.display='none';
-  screenList.style.display='none';
-  screenAdd.style.display='none';
+function mergeUserCatalogIntoCatalog(){
+  const base = new Set(CATALOG.map(p => p.nome.toLowerCase()));
+  for(const p of USER_CATALOG){
+    if(!base.has(p.nome.toLowerCase())){
+      CATALOG.push(p);
+      base.add(p.nome.toLowerCase());
+    }
+  }
 }
 
-function openAdd(){
-  screenHome.style.display='none';
-  screenCatalog.style.display='none';
-  screenList.style.display='none';
-  screenAdd.style.display='block';
+loadUserCatalog();
+mergeUserCatalogIntoCatalog();
+
+/* ---------------------------
+   BALANCE
+--------------------------- */
+const STORAGE_KEY = 'BALANCE_v1';
+let BALANCE = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+function persistBalance(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(BALANCE));
 }
 
+/* ---------------------------
+   UI references
+--------------------------- */
+const prodGrid = document.getElementById('prodGrid');
+const prodCard = document.getElementById('prodCard');
+const addedCard = document.getElementById('addedCard');
+const cadCard = document.getElementById('cadCard');
+const addedListEl = document.getElementById('addedList');
+const prodTitle = document.getElementById('prodTitle');
+const searchInput = document.getElementById('searchInput');
+
+/* ---------------------------
+   NAVIGATION
+--------------------------- */
+document.getElementById('btnProducao').onclick = ()=>openCatalog('producao');
+document.getElementById('btnBar').onclick = ()=>openCatalog('bar');
+document.getElementById('btnCadastrar').onclick = ()=>openRegister();
+
+document.getElementById('backHome').onclick = backHome;
+document.getElementById('backFromAdded').onclick = backHome;
+
+document.getElementById('viewAddedBtn').onclick = openAdded;
+document.getElementById('clearBalance').onclick = ()=>{
+  if(confirm('Limpar todos os registros?')){
+    BALANCE = [];
+    persistBalance();
+    renderAdded();
+  }
+};
+
+document.getElementById('cancelNew').onclick = backHome;
+
+/* ---------------------------
+   CATALOG VIEW
+--------------------------- */
 function openCatalog(scope){
-  screenHome.style.display='none';
-  screenCatalog.style.display='block';
-  screenList.style.display='none';
-  screenAdd.style.display='none';
-  renderCatalog(scope);
+  document.getElementById('menu').style.display='none';
+  addedCard.style.display='none';
+  cadCard.style.display='none';
+  prodCard.style.display='block';
+
+  prodTitle.textContent = scope === 'producao' ? 'Produção' : 'Bar';
+
+  prodGrid.innerHTML = "";
+
+  const items = CATALOG
+    .filter(p => p.scope === scope)
+    .sort((a,b)=> a.nome.localeCompare(b.nome,'pt-BR'));
+
+  items.forEach(p=>{
+    const btn = document.createElement("button");
+    btn.className="prod-btn";
+    btn.innerHTML = `<span class="prod-name">${p.nome}</span><small>${p.unidade}</small>`;
+    btn.onclick = ()=>openModalFor(p);
+    prodGrid.appendChild(btn);
+  });
+
+  applySearchFilter();
 }
 
-function showAdded(){
-  screenHome.style.display='none';
-  screenCatalog.style.display='none';
-  screenList.style.display='block';
-  screenAdd.style.display='none';
+/* ---------------------------
+   REGISTER PRODUCT
+--------------------------- */
+function openRegister(){
+  document.getElementById('menu').style.display='none';
+  prodCard.style.display='none';
+  addedCard.style.display='none';
+  cadCard.style.display='block';
+}
+
+/* ---------------------------
+   HOME
+--------------------------- */
+function backHome(){
+  prodCard.style.display='none';
+  addedCard.style.display='none';
+  cadCard.style.display='none';
+  document.getElementById('menu').style.display='block';
+}
+
+/* ---------------------------
+   MODAL ADD/EDIT
+--------------------------- */
+const modal = document.getElementById('modal');
+const modalName = document.getElementById('modalName');
+const sectorSelect = document.getElementById('sectorSelect');
+const qtyInput = document.getElementById('qtyInput');
+const modalSave = document.getElementById('modalSave');
+const modalClose = document.getElementById('modalClose');
+
+let currentProduct = null;
+
+function openModalFor(product){
+  currentProduct = product;
+  modalName.textContent = product.nome;
+
+  // setor inicial
+  sectorSelect.value = product.scope === 'bar' ? 'bar' : 'deposito';
+
+  qtyInput.value = "";
+  modal.style.display='flex';
+  setTimeout(()=>qtyInput.focus(),200);
+}
+
+modalClose.onclick = ()=> modal.style.display='none';
+
+modalSave.onclick = ()=>{
+  const sector = sectorSelect.value;
+  const q = parseFloat(qtyInput.value.replace(",",".") || 0);
+  if(q <= 0){ alert("Quantidade inválida"); return; }
+
+  let entry = BALANCE.find(x=>x.produto === currentProduct.nome);
+  if(!entry){
+    entry = { produto:currentProduct.nome, unidade:currentProduct.unidade, deposito:0, camara:0, freezer:0, bar:0 };
+    BALANCE.push(entry);
+  }
+
+  entry[sector] = Number(((entry[sector]||0)+q).toFixed(3));
+  persistBalance();
+
+  modal.style.display='none';
+  openCatalog(currentProduct.scope);
+};
+
+/* ---------------------------
+   ADDED LIST
+--------------------------- */
+function openAdded(){
+  document.getElementById('menu').style.display='none';
+  prodCard.style.display='none';
+  cadCard.style.display='none';
+  addedCard.style.display='block';
   renderAdded();
 }
 
-// render catalog into two-column grid
-function renderCatalog(scope){
-  catalogGrid.innerHTML='';
-  catalogTitle.textContent = scope==='producao' ? 'Produção' : 'Bar';
-  const list = CATALOG.filter(p=>p.scope===scope).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR',{sensitivity:'base'}));
-  for(const p of list){
-    const btn = document.createElement('button');
-    btn.className='prod-btn';
-    // show minimal meta (name + unit)
-    btn.innerHTML = `<strong style="font-size:14px">${p.nome}</strong><small>${p.unidade}</small>`;
-    btn.addEventListener('click', ()=>openModalForProduct(p));
-    catalogGrid.appendChild(btn);
-  }
-}
-
-// modal logic
-let currentProduct = null;
-function openModalForProduct(p){
-  currentProduct = p;
-  modalTitle.textContent = p.nome;
-  modalUnit.value = p.unidade || '';
-  modalSector.value = p.scope === 'bar' ? 'bar' : 'deposito';
-  modalQty.value='';
-  modalSum.checked = true;
-  modal.style.display='flex';
-  setTimeout(()=> modalQty.focus(),150);
-}
-
-document.getElementById('modalCancel').addEventListener('click', ()=>{ modal.style.display='none'; currentProduct=null; });
-
-// save from modal
-document.getElementById('modalSave').addEventListener('click', ()=>{
-  if(!currentProduct){ modal.style.display='none'; return; }
-  let q = parseFloat(modalQty.value || '0');
-  if(isNaN(q) || q <= 0){ alert('Informe quantidade válida'); return; }
-  const sector = modalSector.value; // deposito/camara/freezer/bar
-  const sum = modalSum.checked;
-
-  // find or create entry in BALANCE
-  let entry = BALANCE.find(e => e.produto === currentProduct.nome);
-  if(!entry){
-    entry = {produto: currentProduct.nome, unidade: currentProduct.unidade || 'UN', deposito:0, camara:0, freezer:0, bar:0, obs:''};
-    BALANCE.push(entry);
-  }
-  if(sum) entry[sector] = Number(( (entry[sector] || 0) + q ).toFixed(3));
-  else entry[sector] = Number(q.toFixed(3));
-
-  saveBalance(BALANCE);
-  modal.style.display='none';
-  alert('Salvo!');
-  renderAdded(); // update added list if open
-  currentProduct = null;
-});
-
-// render added entries (with edit)
 function renderAdded(){
-  addedContainer.innerHTML='';
-  if(BALANCE.length === 0){
-    addedContainer.innerHTML = '<div class="small">Nenhum produto adicionado ainda.</div>';
+  addedListEl.innerHTML="";
+
+  if(BALANCE.length===0){
+    addedListEl.innerHTML = '<div class="muted">Nenhum item adicionado.</div>';
     return;
   }
-  // sort by product
-  const sorted = BALANCE.slice().sort((a,b)=>a.produto.localeCompare(b.produto,'pt-BR',{sensitivity:'base'}));
-  for(const e of sorted){
-    const div = document.createElement('div');
-    div.className='entry';
-    div.innerHTML = `<div><strong>${e.produto}</strong><div class="small">${e.unidade} • D:${e.deposito || 0} | C:${e.camara || 0} | F:${e.freezer || 0} | B:${e.bar || 0}</div></div>
-                     <div style="display:flex;gap:8px">
-                       <button class="link" title="Editar" style="background:transparent;border:none;color:var(--petroleo);cursor:pointer">✎</button>
-                       <button class="link" title="Remover" style="background:transparent;border:none;color:#c00;cursor:pointer">🗑</button>
-                     </div>`;
-    // Edit open modal: load product by name to let user edit
-    div.querySelectorAll('button')[0].addEventListener('click', ()=>{
-      // find product in catalog to get unit and scope (if exists)
-      const catalogProd = CATALOG.find(p => p.nome === e.produto);
-      currentProduct = catalogProd || {nome:e.produto, unidade:e.unidade || 'UN', scope:'producao'};
-      modalTitle.textContent = currentProduct.nome;
-      modalUnit.value = currentProduct.unidade || e.unidade || 'UN';
-      modalSector.value = 'deposito';
-      modalQty.value = 0;
-      modalSum.checked = false; // default to replace when editing from entry
-      modal.style.display = 'flex';
-      // When saving, to edit existing fields we rely on modalSave handler which will add to selected sector.
-      // To offer true "edit" (replace) for a selected sector, user can uncheck "Somar" and enter new qty.
-    });
-    // Remove entry
-    div.querySelectorAll('button')[1].addEventListener('click', ()=>{
-      if(!confirm('Remover esse produto das adições?')) return;
-      BALANCE = BALANCE.filter(x => x.produto !== e.produto);
-      saveBalance(BALANCE);
-      renderAdded();
-    });
 
-    addedContainer.appendChild(div);
+  const sorted = BALANCE.slice().sort((a,b)=>a.produto.localeCompare(b.produto,'pt-BR'));
+
+  for(const item of sorted){
+    const div = document.createElement("div");
+    div.className="entry";
+
+    const left = document.createElement("div");
+    left.innerHTML = `
+      <strong>${item.produto}</strong>
+      <small>${item.unidade} • Dep: ${item.deposito} • Cam: ${item.camara} • Freez:${item.freezer} • Bar:${item.bar}</small>
+    `;
+
+    const controls = document.createElement("div");
+    controls.style.display="flex";
+    controls.style.gap="8px";
+
+    const edit = document.createElement("button");
+    edit.className="secondary-btn";
+    edit.textContent="Editar";
+    edit.style.padding="6px 10px";
+
+    edit.onclick = ()=>{
+      // setor correto do catálogo
+      const scopeCorrect = (CATALOG.find(p=>p.nome===item.produto)?.scope || 'producao');
+      currentProduct = { nome:item.produto, unidade:item.unidade, scope:scopeCorrect };
+      modalName.textContent = item.produto;
+      sectorSelect.value = scopeCorrect === "bar" ? "bar" : "deposito";
+      qtyInput.value="";
+      modal.style.display="flex";
+    };
+
+    const del = document.createElement("button");
+    del.className="secondary-btn";
+    del.style.background="#c0392b";
+    del.textContent="Remover";
+
+    del.onclick = ()=>{
+      if(confirm("Remover este item?")){
+        BALANCE = BALANCE.filter(b=>b.produto !== item.produto);
+        persistBalance();
+        renderAdded();
+      }
+    };
+
+    controls.appendChild(edit);
+    controls.appendChild(del);
+    div.appendChild(left);
+    div.appendChild(controls);
+    addedListEl.appendChild(div);
   }
 }
 
-// Export PDF: if BALANCE empty, export catalog (names + unidade) — user asked to test "vazio"
-function exportPDF(){
+/* ---------------------------
+   Search filter
+--------------------------- */
+searchInput.oninput = applySearchFilter;
+
+function applySearchFilter(){
+  const t = searchInput.value.toLowerCase();
+  document.querySelectorAll(".prod-btn").forEach(btn=>{
+    const name = btn.querySelector(".prod-name").textContent.toLowerCase();
+    btn.style.display = name.includes(t) ? "flex" : "none";
+  });
+}
+
+/* ---------------------------
+   PDF (opção com tabela por setor)
+--------------------------- */
+function generatePdf(filterScope){
+  document.getElementById('modalPdf').style.display='none';
+
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF('p','pt','a4');
-  const now = new Date();
-  doc.setFontSize(14);
-  doc.text('Relatório de Estoque', 40, 40);
-  doc.setFontSize(10);
-  doc.text('Gerado em: ' + now.toLocaleString(), 40, 56);
+  const doc = new jsPDF("p","pt","a4");
+  const margin = 40;
+  let y = 40;
 
-  if(BALANCE.length === 0){
-    // export catalog (only names & unit) grouped by scope
-    const prodByScope = {};
-    for(const p of CATALOG){
-      if(!prodByScope[p.scope]) prodByScope[p.scope] = [];
-      prodByScope[p.scope].push([p.nome, p.unidade || 'UN']);
+  const pet = [15,95,92];
+  const gra = [34,34,34];
+  const now = new Date();
+
+  let title = "Relatório de Estoque";
+  if(filterScope==="producao") title="Relatório — Produção";
+  if(filterScope==="bar") title="Relatório — Bar";
+  if(filterScope==="all") title="Relatório — Estoque Geral";
+
+  doc.setFontSize(16);
+  doc.setTextColor(...pet);
+  doc.text(title,margin,y);
+  y+=18;
+
+  doc.setFontSize(10);
+  doc.setTextColor(...gra);
+  doc.text("Gerado em: "+now.toLocaleString(),margin,y);
+  y+=16;
+
+  const balanceMap = {};
+  for(const b of BALANCE) balanceMap[b.produto] = b;
+
+  /* PRODUÇÃO */
+  if(filterScope==="producao" || filterScope==="all"){
+    const list = CATALOG.filter(p=>p.scope==="producao")
+      .map(p=>p.nome)
+      .sort((a,b)=>a.localeCompare(b,'pt-BR'));
+
+    const rows=[];
+    for(const name of list){
+      const b = balanceMap[name];
+      if(!b) continue;
+      const dep=b.deposito||0, cam=b.camara||0, fr=b.freezer||0;
+      const tot = dep+cam+fr;
+      if(tot>0) rows.push([name,dep,cam,fr,tot]);
     }
-    let y = 80;
-    for(const scope of Object.keys(prodByScope)){
-      const heading = scope === 'producao' ? 'PRODUÇÃO' : (scope === 'bar' ? 'BAR' : scope.toUpperCase());
+
+    if(rows.length>0){
       doc.setFontSize(12);
-      doc.text(heading, 40, y);
-      y += 12;
+      doc.setTextColor(...pet);
+      doc.text("PRODUÇÃO",margin,y); y+=8;
+
       doc.autoTable({
-        startY: y,
-        head: [['Produto','Unidade']],
-        body: prodByScope[scope],
-        theme: 'grid',
-        headStyles: { fillColor: [15,95,92], textColor: 255 },
-        styles: { fontSize: 9, cellPadding: 4 }
+        startY:y,
+        head:[["Produto","Dep.","Câm.","Freezer","Total"]],
+        body:rows,
+        theme:"grid",
+        headStyles:{fillColor:pet,textColor:255},
+        styles:{fontSize:9,cellPadding:5},
+        margin:{left:margin,right:margin}
       });
-      y = doc.lastAutoTable.finalY + 12;
+      y = doc.lastAutoTable.finalY + 18;
     }
-  } else {
-    // produce table like: Produto | Depósito | Câmara | Freezer | Bar | Total
-    const head = [['Produto','Depósito','Câmara','Freezer','Bar','Total']];
-    const body = BALANCE.map(b => {
-      const dep = b.deposito || 0;
-      const cam = b.camara || 0;
-      const fr = b.freezer || 0;
-      const bar = b.bar || 0;
-      const total = Number((dep + cam + fr + bar).toFixed(3));
-      return [b.produto, dep, cam, fr, bar, total];
-    });
-    doc.autoTable({
-      startY: 80,
-      head,
-      body,
-      theme: 'grid',
-      headStyles: { fillColor: [15,95,92], textColor:255 },
-      styles: { fontSize:9, cellPadding:4 }
-    });
   }
 
-  doc.save('balanco_' + now.toISOString().slice(0,19).replace(/[:T]/g,'-') + '.pdf');
+  if(y>700){ doc.addPage(); y=40; }
+
+  /* BAR */
+  if(filterScope==="bar" || filterScope==="all"){
+    const list = CATALOG.filter(p=>p.scope==="bar")
+      .map(p=>p.nome)
+      .sort((a,b)=>a.localeCompare(b,'pt-BR'));
+
+    const rows=[];
+    for(const name of list){
+      const b=balanceMap[name];
+      if(!b) continue;
+      const dep=b.deposito||0, bar=b.bar||0;
+      const tot = dep + bar;
+      if(tot>0) rows.push([name,dep,bar,tot]);
+    }
+
+    if(rows.length>0){
+      doc.setFontSize(12);
+      doc.setTextColor(...pet);
+      doc.text("BAR",margin,y); y+=8;
+
+      doc.autoTable({
+        startY:y,
+        head:[["Produto","Dep.","Bar","Total"]],
+        body:rows,
+        theme:"grid",
+        headStyles:{fillColor:pet,textColor:255},
+        styles:{fontSize:9,cellPadding:5},
+        margin:{left:margin,right:margin}
+      });
+
+      y = doc.lastAutoTable.finalY + 18;
+    }
+  }
+
+  const ts = now.toISOString().replace(/[:T]/g,"-").slice(0,19);
+  doc.save("balanco_"+filterScope+"_"+ts+".pdf");
 }
 
-// initial render
-showHome();
+/* ---------------------------
+   PDF modal buttons
+--------------------------- */
+document.getElementById("pdfProducao").onclick = ()=>generatePdf("producao");
+document.getElementById("pdfBar").onclick = ()=>generatePdf("bar");
+document.getElementById("pdfAll").onclick = ()=>generatePdf("all");
+document.getElementById("modalPdfClose").onclick = ()=>document.getElementById("modalPdf").style.display="none";
+document.getElementById("openPdfModal").onclick = ()=>document.getElementById("modalPdf").style.display="flex";
 
-// expose opening functions for quick testing (optional)
-window.openCatalog = openCatalog;
-window.showAdded = showAdded;
-window.exportPDF = exportPDF;
+/* ---------------------------
+   INIT
+--------------------------- */
+(function(){
+  document.getElementById("modal").onclick = e=>{ if(e.target.id==="modal") modal.style.display="none"; };
+  document.getElementById("modalPdf").onclick = e=>{ if(e.target.id==="modalPdf") document.getElementById("modalPdf").style.display="none"; };
+  backHome();
+})();
 </script>
+
 </body>
 </html>
